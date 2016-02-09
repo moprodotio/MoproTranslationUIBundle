@@ -1,0 +1,14 @@
+{
+    "name": "mopro/translation-ui-bundle",
+    "description": "A different UI for the JMSTranslationBundle",
+    "require": {
+        "jms/translation-bundle": "^1.1"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Marc Weistroff",
+            "email": "marc@mopro.io"
+        }
+    ]
+}

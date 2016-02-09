@@ -5,7 +5,7 @@
         "jms/translation-bundle": "^1.1"
     },
     "autoload": {
-        "psr-4": {"Mopro\\Bundle\\MoproTranslationUIBundle\\": ""}
+        "psr-4": {"Mopro\\Bundle\\TranslationUIBundle\\": ""}
     },
     "license": "MIT",
     "authors": [

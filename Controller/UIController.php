@@ -58,8 +58,9 @@ class UIController extends Controller
                 $catalogue = $loader->loadFile($files[$domain][$locale][1]->getPathName(), $files[$domain][$locale][0], $locale, $domain);
                 foreach ($catalogue->getDomain($domain)->all() as $id => $message) {
                     if (!isset($all[$domain][$id])) {
-                        $all[$domain][$id] = ['key' => $id, 'notTranslated' => false, 'isNew' => $message->isNew(), 'locales' => [], 'sources' => []];
+                        $all[$domain][$id] = ['id' => '', 'key' => $id, 'notTranslated' => false, 'isNew' => $message->isNew(), 'locales' => [], 'sources' => []];
                     }
+                    $all[$domain][$id]['id'] = sha1(sprintf('%s-%s', $domain, $id));
                     $all[$domain][$id]['isNew'] = $all[$domain][$id]['isNew'] ?: $message->isNew();
                     $sources = $message->getSources();
                     foreach ($sources as $source) {

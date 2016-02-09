@@ -111,34 +111,75 @@ function uiRefreshed() {
     };
 }
 
+const UI_UPDATE_MESSAGE = 'ui_update_message';
 function updateMessage(url, domain, key, locale, message) {
-    var request = {
-        method: 'PUT',
-        body: JSON.stringify({
-            domain: domain,
-            key: key,
-            locale: locale,
-            message: message
-        })
-    }
+    return function(dispatch) {
+        var request = {
+            method: 'PUT',
+            body: JSON.stringify({
+                domain: domain,
+                key: key,
+                locale: locale,
+                message: message
+            })
+        }
 
-    return fetch(url, request)
-           .then(function(response) {
-               if (response.status >= 200 && response.status < 300) {
-                   return response
-               } else {
-                   var error = new Error(response.statusText)
-                    error.response = response
-                    throw error
-               }
-           })
-           .catch(function(error) {
+        return fetch(url, request)
+            .then(function(response) {
+                if (response.status >= 200 && response.status < 300) {
+                    return response
+                } else {
+                    var error = new Error(response.statusText)
+                        error.response = response
+                        throw error
+                }
+            })
+            .then(function(response) {
+                dispatch({
+                    type: UI_UPDATE_MESSAGE,
+                    payload: {
+                        domain: domain,
+                        key: key,
+                        locale: locale,
+                        message: message,
+                        succeed: true
+                    }
+                });
+            })
+            .catch(function(error) {
+                dispatch({
+                    type: UI_UPDATE_MESSAGE,
+                    payload: {
+                        domain: domain,
+                        key: key,
+                        locale: locale,
+                        message: message,
+                        succeed: false
+                    }
+                });
                 window.alert(error);
-        });
+            });
+    }
 }
 
 function translationUIReducer(state = defaultState, action) {
     switch(action.type) {
+        case UI_UPDATE_MESSAGE:
+            var index = state.messages.findEntry(function(item) {
+                return (item.get('domain') == action.payload.domain && item.get('key') == action.payload.key)
+            })
+            var succeed = {};
+            succeed[action.payload.locale] = action.payload.succeed;
+            var item = state.messages.get(index[0]).toJS();
+            if ("succeed" in item) {
+                item.succeed = Object.assign({}, item.succeed, succeed);
+            } else {
+                item.succeed = succeed;
+            }
+            item.locales[action.payload.locale] = action.payload.message;
+            var messages = state.messages.set(index[0], Immutable.fromJS(item));
+
+            return Object.assign({}, state, {messages: messages});
         case UI_REFRESH:
             return Object.assign({}, state, {indexURL: action.payload.indexURL, updateURL: action.payload.updateURL, loading: true});
         case UI_FILTER_SEARCH:

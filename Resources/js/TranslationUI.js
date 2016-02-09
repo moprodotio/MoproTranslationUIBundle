@@ -74,11 +74,6 @@ class MessagesTableRow extends Component {
     onBlur(e) {
         var target = e.target;
 
-        var original = target.getAttribute('data-original-value');
-        if (target.value == original) {
-            return;
-        }
-
         var domain = target.getAttribute('data-domain');
         var key = target.getAttribute('data-key');
         var locale = target.getAttribute('data-locale');
@@ -92,15 +87,37 @@ class MessagesTableRow extends Component {
             rowClassName = 'warning';
         }
 
+        var sources = [];
+        for (let source of this.props.sources) {
+            sources.push(<li className="text-muted">{source}</li>);
+        }
+
         var locales = [];
         for (let trans of this.props.locales) {
-            locales.push(<td><textarea onBlur={this.onBlur} rows="4" cols="48" data-original-value={trans[1]} data-domain={this.props.domain} data-key={this.props.messageKey} data-locale={trans[0]} onChange={this.onChange}>{trans[1]}</textarea></td>);
+            var className = '';
+            if (typeof this.props.succeed != 'undefined') {
+                var succeed = this.props.succeed.get(trans[0]) ;
+                if (typeof succeed != 'undefined') {
+                    className += succeed ? ' success has-success' : 'danger has-danger';
+                }
+            }
+            locales.push(
+                <td className={className}>
+                    <div className="form-group">
+                        <textarea className="form-control" onBlur={this.onBlur} rows="4" cols="48" data-original-value={trans[1]} data-domain={this.props.domain} data-key={this.props.messageKey} data-locale={trans[0]} defaultValue={trans[1]}></textarea>
+                    </div>
+                </td>);
         }
 
         return (
                 <tr className={rowClassName}>
                     <td>{this.props.domain}</td>
-                    <td>{this.props.messageKey}</td>
+                    <td>
+                        <strong>{this.props.messageKey}</strong>
+                        <ul className="list-unstyled">
+                            {sources}
+                        </ul>
+                    </td>
                     {locales}
                 </tr>
         )
@@ -111,7 +128,7 @@ class MessagesTable extends Component {
     render() {
         var messages = [];
         for (let message of this.props.messages) {
-            messages.push(<MessagesTableRow updateMessage={this.props.updateMessage} domain={message.get('domain')} isNew={message.get('isNew')} messageKey={message.get('key')} locales={message.get('locales')} />);
+            messages.push(<MessagesTableRow key={message.get('id')} sources={message.get('sources')} updateMessage={this.props.updateMessage} domain={message.get('domain')} isNew={message.get('isNew')} messageKey={message.get('key')} succeed={message.get('succeed')} locales={message.get('locales')} />);
         }
 
         var locales = [];
@@ -162,13 +179,13 @@ class TranslationUI extends Component {
     }
 
     updateMessage(domain, key, locale, value) {
-        this.props.updateMessage(
+        this.props.dispatch(this.props.updateMessage(
             this.props.updateURL,
             domain,
             key,
             locale,
             value
-        );
+        ));
     }
 
     render() {

@@ -174,28 +174,52 @@
 	    };
 	}
 
+	var UI_UPDATE_MESSAGE = 'ui_update_message';
 	function updateMessage(url, domain, key, locale, message) {
-	    var request = {
-	        method: 'PUT',
-	        body: JSON.stringify({
-	            domain: domain,
-	            key: key,
-	            locale: locale,
-	            message: message
-	        })
-	    };
+	    return function (dispatch) {
+	        var request = {
+	            method: 'PUT',
+	            body: JSON.stringify({
+	                domain: domain,
+	                key: key,
+	                locale: locale,
+	                message: message
+	            })
+	        };
 
-	    return fetch(url, request).then(function (response) {
-	        if (response.status >= 200 && response.status < 300) {
-	            return response;
-	        } else {
-	            var error = new Error(response.statusText);
-	            error.response = response;
-	            throw error;
-	        }
-	    }).catch(function (error) {
-	        window.alert(error);
-	    });
+	        return fetch(url, request).then(function (response) {
+	            if (response.status >= 200 && response.status < 300) {
+	                return response;
+	            } else {
+	                var error = new Error(response.statusText);
+	                error.response = response;
+	                throw error;
+	            }
+	        }).then(function (response) {
+	            dispatch({
+	                type: UI_UPDATE_MESSAGE,
+	                payload: {
+	                    domain: domain,
+	                    key: key,
+	                    locale: locale,
+	                    message: message,
+	                    succeed: true
+	                }
+	            });
+	        }).catch(function (error) {
+	            dispatch({
+	                type: UI_UPDATE_MESSAGE,
+	                payload: {
+	                    domain: domain,
+	                    key: key,
+	                    locale: locale,
+	                    message: message,
+	                    succeed: false
+	                }
+	            });
+	            window.alert(error);
+	        });
+	    };
 	}
 
 	function translationUIReducer() {
@@ -203,6 +227,22 @@
 	    var action = arguments[1];
 
 	    switch (action.type) {
+	        case UI_UPDATE_MESSAGE:
+	            var index = state.messages.findEntry(function (item) {
+	                return item.get('domain') == action.payload.domain && item.get('key') == action.payload.key;
+	            });
+	            var succeed = {};
+	            succeed[action.payload.locale] = action.payload.succeed;
+	            var item = state.messages.get(index[0]).toJS();
+	            if ("succeed" in item) {
+	                item.succeed = Object.assign({}, item.succeed, succeed);
+	            } else {
+	                item.succeed = succeed;
+	            }
+	            item.locales[action.payload.locale] = action.payload.message;
+	            var messages = state.messages.set(index[0], Immutable.fromJS(item));
+
+	            return Object.assign({}, state, { messages: messages });
 	        case UI_REFRESH:
 	            return Object.assign({}, state, { indexURL: action.payload.indexURL, updateURL: action.payload.updateURL, loading: true });
 	        case UI_FILTER_SEARCH:
@@ -21244,11 +21284,6 @@
 	        value: function onBlur(e) {
 	            var target = e.target;
 
-	            var original = target.getAttribute('data-original-value');
-	            if (target.value == original) {
-	                return;
-	            }
-
 	            var domain = target.getAttribute('data-domain');
 	            var key = target.getAttribute('data-key');
 	            var locale = target.getAttribute('data-locale');
@@ -21263,23 +21298,19 @@
 	                rowClassName = 'warning';
 	            }
 
-	            var locales = [];
+	            var sources = [];
 	            var _iteratorNormalCompletion2 = true;
 	            var _didIteratorError2 = false;
 	            var _iteratorError2 = undefined;
 
 	            try {
-	                for (var _iterator2 = this.props.locales[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-	                    var trans = _step2.value;
+	                for (var _iterator2 = this.props.sources[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+	                    var source = _step2.value;
 
-	                    locales.push(_react2.default.createElement(
-	                        'td',
-	                        null,
-	                        _react2.default.createElement(
-	                            'textarea',
-	                            { onBlur: this.onBlur, rows: '4', cols: '48', 'data-original-value': trans[1], 'data-domain': this.props.domain, 'data-key': this.props.messageKey, 'data-locale': trans[0], onChange: this.onChange },
-	                            trans[1]
-	                        )
+	                    sources.push(_react2.default.createElement(
+	                        'li',
+	                        { className: 'text-muted' },
+	                        source
 	                    ));
 	                }
 	            } catch (err) {
@@ -21297,6 +21328,47 @@
 	                }
 	            }
 
+	            var locales = [];
+	            var _iteratorNormalCompletion3 = true;
+	            var _didIteratorError3 = false;
+	            var _iteratorError3 = undefined;
+
+	            try {
+	                for (var _iterator3 = this.props.locales[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+	                    var trans = _step3.value;
+
+	                    var className = '';
+	                    if (typeof this.props.succeed != 'undefined') {
+	                        var succeed = this.props.succeed.get(trans[0]);
+	                        if (typeof succeed != 'undefined') {
+	                            className += succeed ? ' success has-success' : 'danger has-danger';
+	                        }
+	                    }
+	                    locales.push(_react2.default.createElement(
+	                        'td',
+	                        { className: className },
+	                        _react2.default.createElement(
+	                            'div',
+	                            { className: 'form-group' },
+	                            _react2.default.createElement('textarea', { className: 'form-control', onBlur: this.onBlur, rows: '4', cols: '48', 'data-original-value': trans[1], 'data-domain': this.props.domain, 'data-key': this.props.messageKey, 'data-locale': trans[0], defaultValue: trans[1] })
+	                        )
+	                    ));
+	                }
+	            } catch (err) {
+	                _didIteratorError3 = true;
+	                _iteratorError3 = err;
+	            } finally {
+	                try {
+	                    if (!_iteratorNormalCompletion3 && _iterator3.return) {
+	                        _iterator3.return();
+	                    }
+	                } finally {
+	                    if (_didIteratorError3) {
+	                        throw _iteratorError3;
+	                    }
+	                }
+	            }
+
 	            return _react2.default.createElement(
 	                'tr',
 	                { className: rowClassName },
@@ -21308,7 +21380,16 @@
 	                _react2.default.createElement(
 	                    'td',
 	                    null,
-	                    this.props.messageKey
+	                    _react2.default.createElement(
+	                        'strong',
+	                        null,
+	                        this.props.messageKey
+	                    ),
+	                    _react2.default.createElement(
+	                        'ul',
+	                        { className: 'list-unstyled' },
+	                        sources
+	                    )
 	                ),
 	                locales
 	            );
@@ -21331,46 +21412,15 @@
 	        key: 'render',
 	        value: function render() {
 	            var messages = [];
-	            var _iteratorNormalCompletion3 = true;
-	            var _didIteratorError3 = false;
-	            var _iteratorError3 = undefined;
-
-	            try {
-	                for (var _iterator3 = this.props.messages[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-	                    var message = _step3.value;
-
-	                    messages.push(_react2.default.createElement(MessagesTableRow, { updateMessage: this.props.updateMessage, domain: message.get('domain'), isNew: message.get('isNew'), messageKey: message.get('key'), locales: message.get('locales') }));
-	                }
-	            } catch (err) {
-	                _didIteratorError3 = true;
-	                _iteratorError3 = err;
-	            } finally {
-	                try {
-	                    if (!_iteratorNormalCompletion3 && _iterator3.return) {
-	                        _iterator3.return();
-	                    }
-	                } finally {
-	                    if (_didIteratorError3) {
-	                        throw _iteratorError3;
-	                    }
-	                }
-	            }
-
-	            var locales = [];
 	            var _iteratorNormalCompletion4 = true;
 	            var _didIteratorError4 = false;
 	            var _iteratorError4 = undefined;
 
 	            try {
-	                for (var _iterator4 = this.props.locales[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
-	                    var locale = _step4.value;
+	                for (var _iterator4 = this.props.messages[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+	                    var message = _step4.value;
 
-	                    var key = 'th-' + locale;
-	                    locales.push(_react2.default.createElement(
-	                        'th',
-	                        { key: locale },
-	                        locale
-	                    ));
+	                    messages.push(_react2.default.createElement(MessagesTableRow, { key: message.get('id'), sources: message.get('sources'), updateMessage: this.props.updateMessage, domain: message.get('domain'), isNew: message.get('isNew'), messageKey: message.get('key'), succeed: message.get('succeed'), locales: message.get('locales') }));
 	                }
 	            } catch (err) {
 	                _didIteratorError4 = true;
@@ -21383,6 +21433,37 @@
 	                } finally {
 	                    if (_didIteratorError4) {
 	                        throw _iteratorError4;
+	                    }
+	                }
+	            }
+
+	            var locales = [];
+	            var _iteratorNormalCompletion5 = true;
+	            var _didIteratorError5 = false;
+	            var _iteratorError5 = undefined;
+
+	            try {
+	                for (var _iterator5 = this.props.locales[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+	                    var locale = _step5.value;
+
+	                    var key = 'th-' + locale;
+	                    locales.push(_react2.default.createElement(
+	                        'th',
+	                        { key: locale },
+	                        locale
+	                    ));
+	                }
+	            } catch (err) {
+	                _didIteratorError5 = true;
+	                _iteratorError5 = err;
+	            } finally {
+	                try {
+	                    if (!_iteratorNormalCompletion5 && _iterator5.return) {
+	                        _iterator5.return();
+	                    }
+	                } finally {
+	                    if (_didIteratorError5) {
+	                        throw _iteratorError5;
 	                    }
 	                }
 	            }
@@ -21460,7 +21541,7 @@
 	    }, {
 	        key: 'updateMessage',
 	        value: function updateMessage(domain, key, locale, value) {
-	            this.props.updateMessage(this.props.updateURL, domain, key, locale, value);
+	            this.props.dispatch(this.props.updateMessage(this.props.updateURL, domain, key, locale, value));
 	        }
 	    }, {
 	        key: 'render',

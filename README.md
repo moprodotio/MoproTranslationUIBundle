@@ -6,19 +6,20 @@ A [different UI](https://twitter.com/de_la_tech/status/696777702645309440) for t
 
 - Install the bundle through composer
 
-		composer require mopro/translation-ui-bundle
+        composer require mopro/translation-ui-bundle
+        php app/console assets:install
 
 - Instanciate the bundle for the `dev` environment
 
-	 	if ('dev' === $this->getEnvironment()) {
-           $bundles[] = new Mopro\Bundle\TranslationUIBundle\MoproTranslationUIBundle();
-    	}
+        if ('dev' === $this->getEnvironment()) {
+            $bundles[] = new Mopro\Bundle\TranslationUIBundle\MoproTranslationUIBundle();
+        }
 
 - Import routing in your `app/config/routing_dev.yml` file
 
-    	mopro_translation_ui:
-           resource: "@MoproTranslationUIBundle/Controller/"
-           type:     annotation
+        mopro_translation_ui:
+            resource: "@MoproTranslationUIBundle/Controller/"
+            type:     annotation
 
 (The routing will conflict with the existing JMSTranslation UI, so remove the routes imports if needed)
 
@@ -36,6 +37,8 @@ make sure you have at least node and npm installed. Then, you will need to run t
     npm install
 
 In order to generate the javascript file, you will need to run the `webpack` command.
+
+Remember to `symlink` your assets by using the `php app/console assets:install --symlink` command
 
 ## LICENSE
 
